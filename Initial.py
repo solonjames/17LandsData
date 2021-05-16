@@ -1,5 +1,6 @@
 import csv
 import numpy as np
+import pickle
 
 initalArray = np.zeros(699)
 
@@ -68,11 +69,17 @@ def generatePairwiseWinrate(path, numDrafts):
 
 
 # pairwiseWinrate, num2card = generatePairwiseWinrate(
-#    "draft_data_public.STX.PremierDraft.csv", 75000
+#     "draft_data_public.STX.PremierDraft.csv", 700
 # )
 
+# with open("num2card.pickle", "wb") as handle:
+#     pickle.dump(num2card, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
 winrates = np.load("pairwiseWinrate.npy")
+with open("num2card.pickle", "rb") as handle:
+    num2card = pickle.load(handle)
 
 test = np.unravel_index(winrates.argmax(), winrates.shape)
 
-print(test)
+print(num2card[test[0]])
+print(num2card[test[1]])
