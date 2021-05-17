@@ -2,14 +2,12 @@ import csv
 import numpy as np
 import pickle
 
-initalArray = np.zeros(699)
 
-
-def generateCardDictionary(header, startingCardIndex):
+def generateCardDictionary(header, startingCardIndex, totalCards):
     cardDict = {}
     reverse = {}
     counter = 0
-    for name in header[startingCardIndex:]:
+    for name in header[startingCardIndex : startingCardIndex + totalCards]:
         cardName = name.replace("pack_card_", "")
         cardDict[cardName] = counter
         reverse[counter] = cardName
@@ -22,7 +20,7 @@ def getPickLists(path, numDrafts):
         reader = csv.reader(f)
         header = next(reader)
 
-        cardDict, num2card = generateCardDictionary(header, 13)
+        cardDict, num2card = generateCardDictionary(header, 13, 343)
 
         totalList = []
         winList = []
@@ -61,25 +59,47 @@ def listToPairwise(maxCardIndex, masterList, winList, lossList):
 def generatePairwiseWinrate(path, numDrafts):
 
     (totalList, winList, lossList, num2card) = getPickLists(path, numDrafts)
-    wins, losses = listToPairwise(686, totalList, winList, lossList)
+    wins, losses = listToPairwise(343, totalList, winList, lossList)
 
     pairwiseWinrate = np.nan_to_num(np.divide(wins, wins + losses))
 
     return pairwiseWinrate, num2card
 
 
-# pairwiseWinrate, num2card = generatePairwiseWinrate(
-#     "draft_data_public.STX.PremierDraft.csv", 700
-# )
+def getPick(pairwiseWinrate, pickedCards, cardsInPack):
+    maxSum = 0
+    pick = -1
+    for potentialPick in cardsInPack:
+        tempSum = 0
+        for pickedCard in pickedCards:
+            tempSum += pairwiseWinrate[pickedCard][potentialPick]
+        if tempSum > maxSum:
+            maxSum = tempSum
+            pick = potentialPick
 
-# with open("num2card.pickle", "wb") as handle:
-#     pickle.dump(num2card, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    return pick, maxSum / len(pickedCards)
+
+
+pairwiseWinrate, num2card = generatePairwiseWinrate(
+    "draft_data_public.STX.PremierDraft.csv", 75000
+)
+
+with open("pairwiseWinrate.npy", "wb") as f:
+    np.save(f, pairwiseWinrate)
+
+with open("num2card.pickle", "wb") as handle:
+    pickle.dump(num2card, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 winrates = np.load("pairwiseWinrate.npy")
 with open("num2card.pickle", "rb") as handle:
     num2card = pickle.load(handle)
 
-test = np.unravel_index(winrates.argmax(), winrates.shape)
+test, rate = getPick(
+    winrates,
+    [245, 261, 231, 277, 291, 133, 198, 188, 337],
+    [176, 244, 104, 53, 284, 217],
+)
 
-print(num2card[test[0]])
-print(num2card[test[1]])
+print(test)
+print(num2card[test])
+print(rate)
